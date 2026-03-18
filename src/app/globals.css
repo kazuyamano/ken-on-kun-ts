@@ -1,0 +1,432 @@
+@import "tailwindcss";
+
+body {
+  margin: 0;
+  width: 100%;
+  background: white;
+  font-family: sans-serif;
+}
+
+/* トップ画像コンテナ */
+#top-container {
+  width: 90%;
+  max-width: 500px;
+  margin: 0 auto;
+  text-align: center;
+}
+#top-container img {
+  width: 100%;
+}
+
+/* モジュールコンテナ（カード） */
+.module-container {
+  position: relative;
+  width: 90%;
+  max-width: 540px;
+  margin: 0 auto 20px auto;
+  padding: 10px 0;
+  box-shadow: 0 1px 6px 0 rgba(32, 33, 36, 0.28);
+  border-radius: 22px;
+  background: white;
+}
+
+/* 体温入力エリア */
+.qa-area {
+  max-width: 640px;
+  margin: 0 auto;
+  padding-top: 20px;
+  display: flex;
+}
+.temp-box {
+  width: 240px;
+  font-size: 18px;
+  margin: 5px auto 0 auto;
+}
+.qa-set {
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+.q-line {
+  width: 180px;
+}
+.q-line p {
+  text-align: right;
+  margin: 0;
+  margin-right: 10px;
+  font-size: 24px;
+  font-weight: bold;
+}
+.a-form input {
+  width: 100px;
+  padding: 0 5px;
+  font-size: 24px;
+  height: 50px;
+  background-color: white;
+  border-color: #d3d3d3;
+  border-radius: 8px;
+  border-style: solid;
+  border-width: thick;
+  -webkit-appearance: none;
+  outline-style: none;
+}
+.a-form input.valid {
+  border-color: #66AB8D;
+}
+.alert-line {
+  width: 100%;
+  margin-bottom: 10px;
+}
+.alert-line p {
+  margin: 5px 0 0 0;
+  text-align: right;
+  font-size: 16px;
+  color: gray;
+}
+
+/* その他入力エリア */
+.extra-area {
+  margin-top: 10px;
+  text-align: center;
+}
+#extra-box {
+  margin: 0 auto;
+  padding-top: 20px;
+}
+.checkbox-set {
+  width: 50%;
+  min-width: 280px;
+  margin: 10px auto;
+  display: flex;
+  justify-content: space-around;
+}
+.extra-checkbox {
+  font-size: 20px;
+}
+.extra-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+}
+.extra-comment {
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+.extra-comment input {
+  font-size: 16px;
+  height: 40px;
+  width: 60%;
+  min-width: 280px;
+  padding-left: 8px;
+  background-color: white;
+  border: 2px solid #d3d3d3;
+  border-radius: 5px;
+  -webkit-appearance: none;
+  outline-style: none;
+}
+
+/* ボタン共通 */
+.module-button {
+  width: 300px;
+  height: 60px;
+  color: white;
+  font-size: 26px;
+  margin-top: 15px;
+  margin-bottom: 0;
+  border: none;
+  border-radius: 40px;
+  background-color: #66AB8D;
+  cursor: pointer;
+}
+.module-button:hover {
+  background-color: #518F74;
+}
+.module-button:disabled {
+  background-color: #d3d3d3;
+  cursor: default;
+}
+.module-button:disabled:hover {
+  background-color: #d3d3d3;
+}
+
+#extra-btn {
+  width: 30px;
+  height: 30px;
+  margin: 0 auto;
+  padding: 0;
+  color: white;
+  font-size: 19px;
+  border: none;
+  border-radius: 15px;
+  background-color: #d3d3d3;
+  cursor: default;
+}
+#extra-btn.active {
+  background-color: #66AB8D;
+  cursor: pointer;
+}
+#extra-btn.active:hover {
+  background-color: #518F74;
+}
+
+.submit-area {
+  margin: 0 auto;
+  padding-bottom: 20px;
+  text-align: center;
+}
+
+/* 履歴エリア */
+.logs-area {
+  width: 90%;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.logs-area p {
+  margin: 10px auto 5px auto;
+  font-size: 18px;
+}
+.logs-box {
+  height: 220px;
+  margin-top: 10px;
+  overflow: auto;
+}
+.logs-table {
+  table-layout: auto;
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 18px;
+}
+.logs-table thead {
+  color: white;
+  background: gray;
+  border-bottom: 2px solid black;
+  font-size: 16px;
+  text-align: center;
+  line-height: 30px;
+}
+.logs-table tbody tr:nth-child(odd) {
+  background: #e9e9e9;
+}
+.logs-table tbody tr:nth-child(even) {
+  background: #ffffff;
+}
+.logs-table tbody {
+  text-align: center;
+  vertical-align: middle;
+  line-height: 40px;
+  white-space: normal;
+  border: solid 1px #d3d3d3;
+}
+.logs-table td {
+  padding: 0 0.3em;
+}
+
+#download-btn {
+  width: 100%;
+  font-size: 24px;
+  border-radius: 5px;
+}
+
+/* 管理者フッター */
+.admin-container {
+  width: 330px;
+  margin: 80px auto 40px auto;
+  text-align: center;
+}
+.admin-container img {
+  display: inline;
+}
+#admin-head {
+  margin: 15px auto;
+  font-size: 16px;
+  font-weight: lighter;
+}
+#admin-comment {
+  margin: 0 auto;
+  font-size: 14px;
+  font-weight: lighter;
+}
+.admin-link-box {
+  width: 100%;
+  margin-top: 15px;
+  display: flex;
+  justify-content: space-around;
+  text-align: center;
+}
+.link-btn-angular {
+  width: 110px;
+  height: 34px;
+  border-radius: 0;
+  margin: 0;
+  text-align: center;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+#github-btn {
+  color: white;
+  background-color: #211F1F;
+  font-size: 24px;
+}
+#twitter-btn2 {
+  background-color: #1DA1F2;
+  font-size: 20px;
+}
+#note-btn {
+  padding-top: 0;
+  background-color: #41C9B4;
+}
+#note-btn img {
+  display: inline;
+}
+
+/* 成功・エラーメッセージ */
+.message-success {
+  text-align: center;
+  color: #66AB8D;
+  font-size: 18px;
+  font-weight: bold;
+  margin: 10px 0;
+}
+.message-error {
+  text-align: center;
+  color: #cc0000;
+  font-size: 16px;
+  margin: 10px 0;
+}
+
+/* ログインページ */
+.login-container {
+  width: 90%;
+  max-width: 400px;
+  margin: 40px auto;
+}
+.login-container h1 {
+  text-align: center;
+  margin: 25px auto;
+  color: #66AB8D;
+  font-size: 24px;
+}
+.login-form-group {
+  margin-bottom: 16px;
+}
+.login-form-group label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14px;
+  color: #333;
+}
+.login-form-group input {
+  width: 100%;
+  height: 40px;
+  padding: 0 8px;
+  font-size: 16px;
+  border: 2px solid #d3d3d3;
+  border-radius: 5px;
+  -webkit-appearance: none;
+  outline: none;
+  box-sizing: border-box;
+}
+.login-form-group input:focus {
+  border-color: #66AB8D;
+}
+
+/* ナビヘッダー（認証済み） */
+.nav-header {
+  width: 90%;
+  max-width: 540px;
+  margin: 0 auto;
+  padding: 8px 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  font-size: 14px;
+}
+.nav-header button {
+  color: gray;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+}
+.nav-header button:hover {
+  color: #66AB8D;
+}
+
+/* レスポンシブ */
+@media only screen and (max-width: 800px) {
+  .module-container {
+    min-width: unset;
+  }
+  .qa-area {
+    width: 100%;
+    flex-direction: column;
+  }
+  .temp-box {
+    flex-wrap: wrap;
+  }
+  .module-button {
+    max-width: 300px;
+    width: 75%;
+  }
+}
+
+@media only screen and (max-width: 360px) {
+  .module-container {
+    min-width: 230px;
+  }
+  .qa-set {
+    flex-direction: column;
+  }
+  .q-line {
+    flex-wrap: wrap;
+  }
+  .q-line p {
+    text-align: center;
+    margin-bottom: 5px;
+  }
+  .alert-line p {
+    text-align: center;
+    margin: 5px 15px 10px 15px;
+  }
+  #extra-box {
+    padding-top: 0;
+  }
+  #extra-btn {
+    margin-bottom: 10px;
+  }
+  .checkbox-set {
+    min-width: unset;
+    width: 140px;
+    flex-direction: column;
+  }
+  .extra-checkbox {
+    margin: 10px 0;
+    text-align: left;
+    font-size: 18px;
+  }
+  .extra-comment {
+    margin-top: 10px;
+  }
+  .extra-comment input {
+    max-width: 280px;
+    width: 80%;
+    min-width: unset;
+    font-size: 14px;
+  }
+  .module-button {
+    margin-top: 0;
+  }
+  #download-btn {
+    font-size: 22px;
+  }
+  .admin-container {
+    width: 240px;
+  }
+  .link-btn-angular {
+    width: 80px;
+  }
+}
