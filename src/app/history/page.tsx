@@ -2,6 +2,7 @@ import { getEntries } from "@/lib/actions";
 import { Header } from "@/components/header";
 import { HistoryTable } from "@/components/history-table";
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 
 export default async function HistoryPage() {
   const supabase = await createClient();
@@ -32,11 +33,11 @@ export default async function HistoryPage() {
       </div>
       <div style={{ width: "90%", maxWidth: "800px", margin: "0 auto" }}>
         <div className="submit-area">
-          <a href="/">
+          <Link href="/">
             <button type="button" className="module-button">
               TOPへ戻る
             </button>
-          </a>
+          </Link>
         </div>
       </div>
     </>
