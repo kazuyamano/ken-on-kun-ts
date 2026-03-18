@@ -21,14 +21,19 @@ export async function addEntry(formData: FormData) {
     return { error: "体温は35.0〜41.0°Cの範囲で入力してください" };
   }
 
-  await db.insert(entries).values({
-    userId: user.id,
-    userName: user.email ?? null,
-    temp,
-    breathlessness: formData.get("breathlessness") === "on",
-    dullness: formData.get("dullness") === "on",
-    comment: (formData.get("comment") as string) || null,
-  });
+  try {
+    await db.insert(entries).values({
+      userId: user.id,
+      userName: user.email ?? null,
+      temp,
+      breathlessness: formData.get("breathlessness") === "on",
+      dullness: formData.get("dullness") === "on",
+      comment: (formData.get("comment") as string) || null,
+    });
+  } catch (e) {
+    console.error("DB insert error:", e);
+    return { error: "記録に失敗しました。もう一度お試しください。" };
+  }
 
   revalidatePath("/");
   revalidatePath("/history");
