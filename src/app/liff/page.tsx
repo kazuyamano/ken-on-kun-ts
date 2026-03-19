@@ -5,9 +5,12 @@ import { initLiff } from "@/lib/liff";
 import { createClient } from "@/lib/supabase/client";
 import { addEntry } from "@/lib/actions";
 import type { Liff } from "@line/liff";
+import type { Entry } from "@/db/schema";
 
 export default function LiffPage() {
-  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "ready" | "done" | "error">(
+    "loading"
+  );
   const [errorDetail, setErrorDetail] = useState("");
   const [profile, setProfile] = useState<{ displayName: string } | null>(null);
   const [message, setMessage] = useState<{
@@ -18,6 +21,7 @@ export default function LiffPage() {
   const [temp, setTemp] = useState("");
   const [extraOpen, setExtraOpen] = useState(false);
   const [liffClient, setLiffClient] = useState<Liff | null>(null);
+  const [historyEntries, setHistoryEntries] = useState<Entry[]>([]);
 
   const tempNum = parseFloat(temp);
   const isValid = !isNaN(tempNum) && tempNum >= 35 && tempNum < 41;
@@ -35,13 +39,11 @@ export default function LiffPage() {
 
         const accessToken = liff.getAccessToken();
         if (!accessToken) {
-          // トークン切れ → 再ログイン
           liff.logout();
           liff.login();
           return;
         }
 
-        // LINE認証 → Supabaseセッション取得
         const res = await fetch("/api/liff/auth", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -52,7 +54,6 @@ export default function LiffPage() {
           const errData = await res.json().catch(() => ({}));
           console.error("LIFF auth API error:", res.status, errData);
           if (res.status === 401) {
-            // LINEトークン期限切れ → 再ログイン
             liff.logout();
             liff.login();
             return;
@@ -64,7 +65,6 @@ export default function LiffPage() {
 
         const data = await res.json();
 
-        // Supabaseセッションをセット
         const supabase = createClient();
         await supabase.auth.setSession({
           access_token: data.access_token,
@@ -96,10 +96,20 @@ export default function LiffPage() {
     if (result.error) {
       setMessage({ type: "error", text: result.error });
     } else {
-      setMessage({ type: "success", text: "記録しました！" });
-      setTemp("");
-      (e.target as HTMLFormElement).reset();
+      // 履歴を取得して完了画面へ
+      const entriesRes = await fetch("/api/liff/entries");
+      if (entriesRes.ok) {
+        setHistoryEntries(await entriesRes.json());
+      }
+      setStatus("done");
     }
+  }
+
+  function backToForm() {
+    setTemp("");
+    setMessage(null);
+    setExtraOpen(false);
+    setStatus("ready");
   }
 
   if (status === "loading") {
@@ -113,7 +123,9 @@ export default function LiffPage() {
   if (status === "error") {
     return (
       <div style={{ textAlign: "center", padding: "60px 0" }}>
-        <p className="message-error">認証に失敗しました。LINEからもう一度開いてください。</p>
+        <p className="message-error">
+          認証に失敗しました。LINEからもう一度開いてください。
+        </p>
         {errorDetail && (
           <p style={{ fontSize: "12px", color: "gray", marginTop: "8px" }}>
             {errorDetail}
@@ -123,6 +135,92 @@ export default function LiffPage() {
     );
   }
 
+  // 送信完了 → 履歴表示
+  if (status === "done") {
+    return (
+      <>
+        <div
+          style={{ width: "90%", maxWidth: "540px", margin: "0 auto" }}
+        >
+          <h1 style={{ margin: "25px auto", textAlign: "center" }}>
+            {profile?.displayName ?? ""}さんの履歴
+          </h1>
+        </div>
+        <div className="module-container">
+          <div className="logs-area">
+            <div className="logs-box">
+              <table className="logs-table">
+                <thead>
+                  <tr>
+                    <th>記録日時</th>
+                    <th>体温</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historyEntries.map((entry) => (
+                    <tr key={entry.id}>
+                      <td>
+                        {entry.createdAt
+                          ? new Date(entry.createdAt).toLocaleString("ja-JP", {
+                              timeZone: "Asia/Tokyo",
+                              weekday: "short",
+                              month: "2-digit",
+                              day: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : ""}
+                      </td>
+                      <td>{entry.temp}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <form action="/download" method="get" target="_blank">
+              <div className="submit-area">
+                <button
+                  type="submit"
+                  className="module-button"
+                  id="download-btn"
+                >
+                  CSVでダウンロード
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        {liffClient && liffClient.isInClient() && (
+          <div style={{ width: "90%", maxWidth: "540px", margin: "0 auto" }}>
+            <div className="submit-area">
+              <button
+                type="button"
+                className="module-button"
+                onClick={() => liffClient.closeWindow()}
+              >
+                閉じる
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div style={{ width: "90%", maxWidth: "540px", margin: "0 auto" }}>
+          <div className="submit-area">
+            <button
+              type="button"
+              className="module-button"
+              onClick={backToForm}
+            >
+              TOPへ戻る
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // 入力フォーム
   return (
     <>
       <div id="top-container">
@@ -193,7 +291,9 @@ export default function LiffPage() {
           {message && (
             <p
               className={
-                message.type === "success" ? "message-success" : "message-error"
+                message.type === "success"
+                  ? "message-success"
+                  : "message-error"
               }
             >
               {message.text}
@@ -210,6 +310,22 @@ export default function LiffPage() {
             </button>
           </div>
         </form>
+      </div>
+
+      <div style={{ width: "90%", maxWidth: "540px", margin: "0 auto" }}>
+        <div className="submit-area">
+          <button
+            type="button"
+            className="module-button"
+            onClick={async () => {
+              const res = await fetch("/api/liff/entries");
+              if (res.ok) setHistoryEntries(await res.json());
+              setStatus("done");
+            }}
+          >
+            履歴を見る
+          </button>
+        </div>
       </div>
 
       {liffClient && liffClient.isInClient() && (
