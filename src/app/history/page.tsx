@@ -15,7 +15,7 @@ export default async function HistoryPage() {
     <>
       <Header />
       <div style={{ width: "90%", maxWidth: "800px", margin: "0 auto" }}>
-        <h1 style={{ margin: "25px auto", textAlign: "center" }}>
+        <h1 style={{ margin: "25px auto", textAlign: "center", fontSize: "24px", fontWeight: "bold" }}>
           {user?.email ?? ""}さんの履歴
         </h1>
       </div>

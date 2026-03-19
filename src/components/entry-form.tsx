@@ -2,9 +2,10 @@
 
 import { useState, useRef } from "react";
 import { addEntry } from "@/lib/actions";
-import { useRouter } from "next/navigation";
+import type { Entry } from "@/db/schema";
 
 export function EntryForm() {
+  const [view, setView] = useState<"form" | "loading" | "history">("form");
   const [temp, setTemp] = useState("");
   const [extraOpen, setExtraOpen] = useState(false);
   const [message, setMessage] = useState<{
@@ -12,8 +13,9 @@ export function EntryForm() {
     text: string;
   } | null>(null);
   const [pending, setPending] = useState(false);
+  const [historyEntries, setHistoryEntries] = useState<Entry[]>([]);
+  const [userName, setUserName] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
-  const router = useRouter();
 
   const tempNum = parseFloat(temp);
   const isValid = !isNaN(tempNum) && tempNum >= 35 && tempNum < 41;
@@ -26,19 +28,130 @@ export function EntryForm() {
 
     const formData = new FormData(formRef.current);
     const result = await addEntry(formData);
-    setPending(false);
 
     if (result.error) {
+      setPending(false);
       setMessage({ type: "error", text: result.error });
     } else {
-      setMessage({ type: "success", text: "記録しました！" });
+      setView("loading");
+      const res = await fetch("/api/liff/entries");
+      if (res.ok) {
+        const data = await res.json();
+        setHistoryEntries(data);
+        if (data.length > 0 && data[0].userName) {
+          setUserName(data[0].userName);
+        }
+      }
+      setPending(false);
       setTemp("");
       formRef.current.reset();
+      setView("history");
     }
   }
 
-  function goToHistory() {
-    router.push("/history");
+  async function goToHistory() {
+    setView("loading");
+    const res = await fetch("/api/liff/entries");
+    if (res.ok) {
+      const data = await res.json();
+      setHistoryEntries(data);
+      if (data.length > 0 && data[0].userName) {
+        setUserName(data[0].userName);
+      }
+    }
+    setView("history");
+  }
+
+  function backToForm() {
+    setTemp("");
+    setMessage(null);
+    setExtraOpen(false);
+    setView("form");
+  }
+
+  if (view === "loading") {
+    return (
+      <div style={{ textAlign: "center", padding: "60px 0" }}>
+        <div className="spinner" />
+        <p style={{ fontSize: "16px", color: "gray", marginTop: "16px" }}>
+          読み込み中...
+        </p>
+      </div>
+    );
+  }
+
+  if (view === "history") {
+    return (
+      <>
+        <div style={{ width: "90%", maxWidth: "540px", margin: "0 auto" }}>
+          <h1
+            style={{
+              margin: "25px auto",
+              textAlign: "center",
+              fontSize: "24px",
+              fontWeight: "bold",
+            }}
+          >
+            {userName || "あなた"}さんの履歴
+          </h1>
+        </div>
+        <div className="module-container">
+          <div className="logs-area">
+            <div className="logs-box">
+              <table className="logs-table">
+                <thead>
+                  <tr>
+                    <th>記録日時</th>
+                    <th>体温</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historyEntries.map((entry) => (
+                    <tr key={entry.id}>
+                      <td>
+                        {entry.createdAt
+                          ? new Date(entry.createdAt).toLocaleString("ja-JP", {
+                              timeZone: "Asia/Tokyo",
+                              weekday: "short",
+                              month: "2-digit",
+                              day: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : ""}
+                      </td>
+                      <td>{entry.temp}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <form action="/download" method="get" target="_blank">
+              <div className="submit-area">
+                <button
+                  type="submit"
+                  className="module-button"
+                  id="download-btn"
+                >
+                  CSVでダウンロード
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div style={{ width: "90%", maxWidth: "540px", margin: "0 auto" }}>
+          <div className="submit-area">
+            <button
+              type="button"
+              className="module-button"
+              onClick={backToForm}
+            >
+              TOPへ戻る
+            </button>
+          </div>
+        </div>
+      </>
+    );
   }
 
   return (
@@ -84,15 +197,10 @@ export function EntryForm() {
               <div id="extra-box">
                 <div className="checkbox-set">
                   <div className="extra-checkbox">
-                    <input
-                      type="checkbox"
-                      name="breathlessness"
-                      id="input3"
-                    />{" "}
-                    息つらい
+                    <input type="checkbox" name="breathlessness" /> 息つらい
                   </div>
                   <div className="extra-checkbox">
-                    <input type="checkbox" name="dullness" id="input4" /> 体だるい
+                    <input type="checkbox" name="dullness" /> 体だるい
                   </div>
                 </div>
                 <div className="extra-comment">
@@ -109,7 +217,9 @@ export function EntryForm() {
           {message && (
             <p
               className={
-                message.type === "success" ? "message-success" : "message-error"
+                message.type === "success"
+                  ? "message-success"
+                  : "message-error"
               }
             >
               {message.text}
