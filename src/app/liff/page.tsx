@@ -91,16 +91,18 @@ export default function LiffPage() {
 
     const formData = new FormData(e.currentTarget);
     const result = await addEntry(formData);
-    setPending(false);
 
     if (result.error) {
+      setPending(false);
       setMessage({ type: "error", text: result.error });
     } else {
-      // 履歴を取得して完了画面へ
+      // スピナー表示して履歴取得
+      setStatus("loading");
       const entriesRes = await fetch("/api/liff/entries");
       if (entriesRes.ok) {
         setHistoryEntries(await entriesRes.json());
       }
+      setPending(false);
       setStatus("done");
     }
   }
@@ -313,6 +315,7 @@ export default function LiffPage() {
             type="button"
             className="module-button"
             onClick={async () => {
+              setStatus("loading");
               const res = await fetch("/api/liff/entries");
               if (res.ok) setHistoryEntries(await res.json());
               setStatus("done");
