@@ -24,7 +24,7 @@ export async function addEntry(formData: FormData) {
   try {
     await db.insert(entries).values({
       userId: user.id,
-      userName: user.email ?? null,
+      userName: user.email ?? user.user_metadata?.display_name ?? null,
       temp,
       breathlessness: formData.get("breathlessness") === "on",
       dullness: formData.get("dullness") === "on",
