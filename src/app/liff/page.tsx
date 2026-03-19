@@ -46,6 +46,8 @@ export default function LiffPage() {
         });
 
         if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          console.error("LIFF auth API error:", res.status, errData);
           setStatus("error");
           return;
         }
