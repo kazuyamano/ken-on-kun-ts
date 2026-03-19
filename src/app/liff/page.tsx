@@ -142,7 +142,7 @@ export default function LiffPage() {
         <div
           style={{ width: "90%", maxWidth: "540px", margin: "0 auto" }}
         >
-          <h1 style={{ margin: "25px auto", textAlign: "center" }}>
+          <h1 style={{ margin: "25px auto", textAlign: "center", fontSize: "24px", fontWeight: "bold" }}>
             {profile?.displayName ?? ""}さんの履歴
           </h1>
         </div>
