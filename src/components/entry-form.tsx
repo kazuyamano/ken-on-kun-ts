@@ -33,15 +33,15 @@ export function EntryForm() {
       setPending(false);
       setMessage({ type: "error", text: result.error });
     } else {
+      setTemp("");
+      formRef.current.reset();
+      setPending(false);
       setView("loading");
       const data = await getEntries();
       setHistoryEntries(data);
       if (data.length > 0 && data[0].userName) {
         setUserName(data[0].userName);
       }
-      setPending(false);
-      setTemp("");
-      formRef.current.reset();
       setView("history");
     }
   }
