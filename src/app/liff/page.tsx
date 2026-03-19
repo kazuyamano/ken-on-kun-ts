@@ -8,6 +8,7 @@ import type { Liff } from "@line/liff";
 
 export default function LiffPage() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [errorDetail, setErrorDetail] = useState("");
   const [profile, setProfile] = useState<{ displayName: string } | null>(null);
   const [message, setMessage] = useState<{
     type: "success" | "error";
@@ -34,7 +35,9 @@ export default function LiffPage() {
 
         const accessToken = liff.getAccessToken();
         if (!accessToken) {
-          setStatus("error");
+          // トークン切れ → 再ログイン
+          liff.logout();
+          liff.login();
           return;
         }
 
@@ -48,6 +51,13 @@ export default function LiffPage() {
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
           console.error("LIFF auth API error:", res.status, errData);
+          if (res.status === 401) {
+            // LINEトークン期限切れ → 再ログイン
+            liff.logout();
+            liff.login();
+            return;
+          }
+          setErrorDetail(`API ${res.status}: ${errData.error || "unknown"}`);
           setStatus("error");
           return;
         }
@@ -63,7 +73,9 @@ export default function LiffPage() {
 
         setProfile({ displayName: data.display_name });
         setStatus("ready");
-      } catch {
+      } catch (e) {
+        console.error("LIFF setup error:", e);
+        setErrorDetail(e instanceof Error ? e.message : String(e));
         setStatus("error");
       }
     }
@@ -102,6 +114,11 @@ export default function LiffPage() {
     return (
       <div style={{ textAlign: "center", padding: "60px 0" }}>
         <p className="message-error">認証に失敗しました。LINEからもう一度開いてください。</p>
+        {errorDetail && (
+          <p style={{ fontSize: "12px", color: "gray", marginTop: "8px" }}>
+            {errorDetail}
+          </p>
+        )}
       </div>
     );
   }
