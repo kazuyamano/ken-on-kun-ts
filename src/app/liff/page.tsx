@@ -115,7 +115,8 @@ export default function LiffPage() {
   if (status === "loading") {
     return (
       <div style={{ textAlign: "center", padding: "60px 0" }}>
-        <p style={{ fontSize: "18px", color: "gray" }}>読み込み中...</p>
+        <div className="spinner" />
+        <p style={{ fontSize: "16px", color: "gray", marginTop: "16px" }}>読み込み中...</p>
       </div>
     );
   }
@@ -227,12 +228,6 @@ export default function LiffPage() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img id="top-img" src="/ken-on-top.png" alt="毎日検温くんZ" />
       </div>
-
-      {profile && (
-        <p style={{ textAlign: "center", fontSize: "16px", color: "#666" }}>
-          {profile.displayName} さん
-        </p>
-      )}
 
       <div className="module-container">
         <form onSubmit={handleSubmit} autoComplete="on">
