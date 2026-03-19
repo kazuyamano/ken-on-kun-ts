@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { addEntry } from "@/lib/actions";
+import { addEntry, getEntries } from "@/lib/actions";
 import type { Entry } from "@/db/schema";
 
 export function EntryForm() {
@@ -34,13 +34,10 @@ export function EntryForm() {
       setMessage({ type: "error", text: result.error });
     } else {
       setView("loading");
-      const res = await fetch("/api/liff/entries");
-      if (res.ok) {
-        const data = await res.json();
-        setHistoryEntries(data);
-        if (data.length > 0 && data[0].userName) {
-          setUserName(data[0].userName);
-        }
+      const data = await getEntries();
+      setHistoryEntries(data);
+      if (data.length > 0 && data[0].userName) {
+        setUserName(data[0].userName);
       }
       setPending(false);
       setTemp("");
@@ -51,13 +48,10 @@ export function EntryForm() {
 
   async function goToHistory() {
     setView("loading");
-    const res = await fetch("/api/liff/entries");
-    if (res.ok) {
-      const data = await res.json();
-      setHistoryEntries(data);
-      if (data.length > 0 && data[0].userName) {
-        setUserName(data[0].userName);
-      }
+    const data = await getEntries();
+    setHistoryEntries(data);
+    if (data.length > 0 && data[0].userName) {
+      setUserName(data[0].userName);
     }
     setView("history");
   }
