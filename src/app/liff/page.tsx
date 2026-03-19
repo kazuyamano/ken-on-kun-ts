@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { initLiff } from "@/lib/liff";
 import { createClient } from "@/lib/supabase/client";
-import { addEntry } from "@/lib/actions";
 import type { Liff } from "@line/liff";
 import type { Entry } from "@/db/schema";
 
@@ -22,6 +21,7 @@ export default function LiffPage() {
   const [extraOpen, setExtraOpen] = useState(false);
   const [liffClient, setLiffClient] = useState<Liff | null>(null);
   const [historyEntries, setHistoryEntries] = useState<Entry[]>([]);
+  const [lineUserId, setLineUserId] = useState("");
 
   const tempNum = parseFloat(temp);
   const isValid = !isNaN(tempNum) && tempNum >= 35 && tempNum < 41;
@@ -72,6 +72,7 @@ export default function LiffPage() {
         });
 
         setProfile({ displayName: data.display_name });
+        setLineUserId(data.line_user_id || "");
         setStatus("ready");
       } catch (e) {
         console.error("LIFF setup error:", e);
@@ -90,7 +91,19 @@ export default function LiffPage() {
     setMessage(null);
 
     const formData = new FormData(e.currentTarget);
-    const result = await addEntry(formData);
+    const res = await fetch("/api/liff/add-entry", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: lineUserId,
+        displayName: profile?.displayName,
+        temp: formData.get("temp"),
+        breathlessness: formData.get("breathlessness") === "on",
+        dullness: formData.get("dullness") === "on",
+        comment: formData.get("comment"),
+      }),
+    });
+    const result = await res.json();
 
     if (result.error) {
       setPending(false);

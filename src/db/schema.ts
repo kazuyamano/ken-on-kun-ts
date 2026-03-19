@@ -18,5 +18,12 @@ export const entries = pgTable("entries", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const userLinks = pgTable("user_links", {
+  id: serial("id").primaryKey(),
+  supabaseUserId: text("supabase_user_id").notNull(),
+  lineUserId: text("line_user_id").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export type Entry = typeof entries.$inferSelect;
 export type NewEntry = typeof entries.$inferInsert;

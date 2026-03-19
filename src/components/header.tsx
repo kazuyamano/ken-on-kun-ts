@@ -15,6 +15,7 @@ export function Header() {
 
   return (
     <nav className="nav-header">
+      <button onClick={() => router.push("/link-line")}>LINE連携</button>
       <button onClick={handleLogout}>ログアウト</button>
     </nav>
   );
