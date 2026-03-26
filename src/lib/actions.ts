@@ -3,8 +3,9 @@
 import { db } from "@/db";
 import { entries } from "@/db/schema";
 import { createClient } from "@/lib/supabase/server";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { resolveUserIds } from "@/lib/resolve-user-ids";
 
 export async function addEntry(formData: FormData) {
   const supabase = await createClient();
@@ -50,9 +51,11 @@ export async function getEntries() {
     return [];
   }
 
+  const userIds = await resolveUserIds(user);
+
   return db
     .select()
     .from(entries)
-    .where(eq(entries.userId, user.id))
+    .where(inArray(entries.userId, userIds))
     .orderBy(desc(entries.createdAt));
 }

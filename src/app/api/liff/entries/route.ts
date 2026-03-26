@@ -1,10 +1,11 @@
 import { db } from "@/db";
-import { entries, userLinks } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { entries } from "@/db/schema";
+import { inArray, desc } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { resolveUserIds } from "@/lib/resolve-user-ids";
 
-export async function GET(request: Request) {
+export async function GET() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -14,26 +15,12 @@ export async function GET(request: Request) {
     return NextResponse.json([], { status: 200 });
   }
 
-  // user_metadataにline_user_idがあれば、紐付け先のsupabaseUserIdで検索
-  const lineUserId = user.user_metadata?.line_user_id as string | undefined;
-  let queryUserId = user.id;
-
-  if (lineUserId) {
-    const [link] = await db
-      .select()
-      .from(userLinks)
-      .where(eq(userLinks.lineUserId, lineUserId))
-      .limit(1);
-
-    if (link) {
-      queryUserId = link.supabaseUserId;
-    }
-  }
+  const userIds = await resolveUserIds(user);
 
   const rows = await db
     .select()
     .from(entries)
-    .where(eq(entries.userId, queryUserId))
+    .where(inArray(entries.userId, userIds))
     .orderBy(desc(entries.createdAt));
 
   return NextResponse.json(rows);
