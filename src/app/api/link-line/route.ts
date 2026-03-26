@@ -60,18 +60,21 @@ export async function POST(request: Request) {
     });
 
     // LINE専用ユーザーで記録済みのエントリがあれば、現在のユーザーに移行
+    // LINE authで作成されたSupabaseユーザーのIDで記録されたエントリを探す
     const lineEmail = `line_${lineUserId}@line.local`;
-    const lineEntries = await db
-      .select()
-      .from(entries)
-      .where(eq(entries.userName, lineEmail))
-      .limit(1);
+    const supabaseAdmin = (await import("@supabase/supabase-js")).createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
+    const lineAuthUser = users.find((u) => u.email === lineEmail);
 
-    if (lineEntries.length > 0) {
+    if (lineAuthUser) {
+      // LINE用authユーザーのIDで記録されたエントリをWebユーザーに移行
       await db
         .update(entries)
-        .set({ userId: user.id })
-        .where(eq(entries.userId, lineEntries[0].userId));
+        .set({ userId: user.id, userName: user.email ?? null })
+        .where(eq(entries.userId, lineAuthUser.id));
     }
 
     return NextResponse.json({

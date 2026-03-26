@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { entries, userLinks } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: Request) {
   try {
@@ -20,9 +26,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // user_links で紐付け先を確認し、あればそちらのuserIdを使用
+    // user_links で紐付け先を確認し、あればそちらのuserIdとuserNameを使用
     const lineUserId = userId;
     let actualUserId = userId;
+    let actualUserName: string | null = displayName ?? null;
 
     const [link] = await db
       .select()
@@ -32,11 +39,16 @@ export async function POST(request: Request) {
 
     if (link) {
       actualUserId = link.supabaseUserId;
+      // 紐付け先のSupabaseユーザーのemailをuserNameに使用
+      const { data: { user: supabaseUser } } = await supabaseAdmin.auth.admin.getUserById(link.supabaseUserId);
+      if (supabaseUser?.email) {
+        actualUserName = supabaseUser.email;
+      }
     }
 
     await db.insert(entries).values({
       userId: actualUserId,
-      userName: displayName ?? null,
+      userName: actualUserName,
       temp: tempNum,
       breathlessness: !!breathlessness,
       dullness: !!dullness,
