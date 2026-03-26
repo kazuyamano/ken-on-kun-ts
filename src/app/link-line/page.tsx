@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { initLiff } from "@/lib/liff";
 
 export default function LinkLinePage() {
@@ -81,11 +82,11 @@ export default function LinkLinePage() {
               {message}
             </p>
             <div className="submit-area" style={{ marginTop: "20px" }}>
-              <a href="/">
+              <Link href="/">
                 <button type="button" className="module-button">
                   TOPへ戻る
                 </button>
-              </a>
+              </Link>
             </div>
           </div>
         )}
