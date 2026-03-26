@@ -63,7 +63,7 @@ async function addLineAuthUserId(
   idSet.add(lineUserId);
 
   // Supabase admin API (service_role) でLINE authユーザーを検索
-  const lineEmail = `line_${lineUserId}@line.local`;
+  const lineEmail = `line_${lineUserId.toLowerCase()}@line.local`;
   const { data: { users } } = await supabaseAdmin.auth.admin.listUsers({
     page: 1,
     perPage: 1000,
