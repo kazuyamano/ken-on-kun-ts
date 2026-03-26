@@ -1,11 +1,17 @@
 import { db } from "@/db";
 import { userLinks } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 /**
  * 認証ユーザーに紐付くすべてのuserIdを返す。
  * - LINE連携前: 自分のIDのみ
- * - LINE連携後: WebのsupabaseUserId + LINE authユーザーのID + lineUserId
+ * - LINE連携後: WebのsupabaseUserId + LINE authユーザーのID
  */
 export async function resolveUserIds(user: {
   id: string;
@@ -56,13 +62,14 @@ async function addLineAuthUserId(
   // lineUserId自体がentriesに入っている場合をカバー
   idSet.add(lineUserId);
 
-  // auth.usersテーブルからemail検索でLINE authユーザーのIDを取得
+  // Supabase admin API (service_role) でLINE authユーザーを検索
   const lineEmail = `line_${lineUserId}@line.local`;
-  const result = await db.execute<{ id: string }>(
-    sql`SELECT id FROM auth.users WHERE email = ${lineEmail} LIMIT 1`
-  );
-  const rows = [...result];
-  if (rows.length > 0) {
-    idSet.add(rows[0].id);
+  const { data: { users } } = await supabaseAdmin.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000,
+  });
+  const lineAuthUser = users.find((u) => u.email === lineEmail);
+  if (lineAuthUser) {
+    idSet.add(lineAuthUser.id);
   }
 }
