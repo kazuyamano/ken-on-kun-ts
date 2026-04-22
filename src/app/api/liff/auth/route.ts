@@ -9,6 +9,10 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+function getPassword(lineUserId: string) {
+  return `line_${lineUserId}_${process.env.LIFF_PASSWORD_SECRET!}`;
+}
+
 export async function POST(request: Request) {
   try {
     const { accessToken } = await request.json();
@@ -37,6 +41,36 @@ export async function POST(request: Request) {
     const lineUserId = profile.userId as string;
     const displayName = profile.displayName as string;
 
+    const email = `line_${lineUserId}@line.local`;
+    const password = getPassword(lineUserId);
+
+    // 既存ユーザーの移行処理：新パスワードでサインイン失敗したらパスワードを更新
+    async function signInOrMigrate(targetEmail: string, targetPassword: string) {
+      const { data: signInData } = await supabaseAdmin.auth.signInWithPassword({
+        email: targetEmail,
+        password: targetPassword,
+      });
+
+      if (signInData?.session) return signInData;
+
+      // 失敗した場合、admin APIでパスワードを強制更新（移行）
+      const { data: users } = await supabaseAdmin.auth.admin.listUsers();
+      const existingUser = users?.users.find(u => u.email === targetEmail);
+
+      if (existingUser) {
+        await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
+          password: targetPassword,
+        });
+        const { data: retryData } = await supabaseAdmin.auth.signInWithPassword({
+          email: targetEmail,
+          password: targetPassword,
+        });
+        return retryData;
+      }
+
+      return null;
+    }
+
     // 1. user_links テーブルで紐付け済みか確認
     const [link] = await db
       .select()
@@ -45,28 +79,22 @@ export async function POST(request: Request) {
       .limit(1);
 
     if (link) {
-      // 紐付け済み → 既存のSupabaseユーザーでセッション発行
       const linkedEmail = `line_${lineUserId}@line.local`;
-      const linkedPassword = `line_${lineUserId}_${process.env.SUPABASE_SERVICE_ROLE_KEY!.slice(-8)}`;
+      const linkedPassword = getPassword(lineUserId);
 
-      // まずサインインを試みる
-      const { data: signInData } =
-        await supabaseAdmin.auth.signInWithPassword({
-          email: linkedEmail,
-          password: linkedPassword,
-        });
+      const sessionData = await signInOrMigrate(linkedEmail, linkedPassword);
 
-      if (signInData?.session) {
+      if (sessionData?.session) {
         return NextResponse.json({
-          access_token: signInData.session.access_token,
-          refresh_token: signInData.session.refresh_token,
+          access_token: sessionData.session.access_token,
+          refresh_token: sessionData.session.refresh_token,
           user_id: link.supabaseUserId,
           display_name: displayName,
-        line_user_id: lineUserId,
+          line_user_id: lineUserId,
         });
       }
 
-      // LINE用の認証ユーザーがまだ無い場合は作成し、entriesを移行
+      // ユーザーが存在しない場合は新規作成
       const { data: newUser, error: createError } =
         await supabaseAdmin.auth.admin.createUser({
           email: linkedEmail,
@@ -83,11 +111,10 @@ export async function POST(request: Request) {
         );
       }
 
-      const { data: newSession } =
-        await supabaseAdmin.auth.signInWithPassword({
-          email: linkedEmail,
-          password: linkedPassword,
-        });
+      const { data: newSession } = await supabaseAdmin.auth.signInWithPassword({
+        email: linkedEmail,
+        password: linkedPassword,
+      });
 
       if (!newSession?.session) {
         return NextResponse.json(
@@ -106,17 +133,13 @@ export async function POST(request: Request) {
     }
 
     // 2. 紐付けなし → 従来通りLINE専用ユーザーでサインイン/作成
-    const email = `line_${lineUserId}@line.local`;
-    const password = `line_${lineUserId}_${process.env.SUPABASE_SERVICE_ROLE_KEY!.slice(-8)}`;
+    const sessionData = await signInOrMigrate(email, password);
 
-    const { data: signInData } =
-      await supabaseAdmin.auth.signInWithPassword({ email, password });
-
-    if (signInData?.session) {
+    if (sessionData?.session) {
       return NextResponse.json({
-        access_token: signInData.session.access_token,
-        refresh_token: signInData.session.refresh_token,
-        user_id: signInData.user!.id,
+        access_token: sessionData.session.access_token,
+        refresh_token: sessionData.session.refresh_token,
+        user_id: sessionData.user!.id,
         display_name: displayName,
         line_user_id: lineUserId,
       });
@@ -155,7 +178,7 @@ export async function POST(request: Request) {
       refresh_token: newSession.session.refresh_token,
       user_id: newUser.user.id,
       display_name: displayName,
-        line_user_id: lineUserId,
+      line_user_id: lineUserId,
     });
   } catch (e) {
     console.error("LIFF auth error:", e);
