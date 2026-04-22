@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { userLinks } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,14 +53,28 @@ export async function POST(request: Request) {
 
       if (signInData?.session) return signInData;
 
-      // サインイン失敗 → auth.usersテーブルからemailでユーザーIDを取得しパスワード強制更新
-      const rows = await db.execute(
-        sql`SELECT id FROM auth.users WHERE email = ${targetEmail} LIMIT 1`
-      );
+      // サインイン失敗 → 既存ユーザーを削除して再作成（パスワードリセット）
+      // GoTrue admin APIの全ページを走査してemailでユーザーを探す
+      let page = 1;
+      let foundUserId: string | null = null;
+      while (!foundUserId) {
+        const { data: listData } = await supabaseAdmin.auth.admin.listUsers({
+          page,
+          perPage: 100,
+        });
+        if (!listData?.users?.length) break;
+        const match = listData.users.find(u => u.email === targetEmail);
+        if (match) {
+          foundUserId = match.id;
+          break;
+        }
+        if (listData.users.length < 100) break;
+        page++;
+      }
 
-      if (rows.length > 0) {
-        const userId = (rows[0] as { id: string }).id;
-        await supabaseAdmin.auth.admin.updateUserById(userId, {
+      if (foundUserId) {
+        // パスワードを強制更新
+        await supabaseAdmin.auth.admin.updateUserById(foundUserId, {
           password: targetPassword,
         });
         const { data: retryData } = await supabaseAdmin.auth.signInWithPassword({
