@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { createHmac } from "crypto";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { userLinks } from "@/db/schema";
@@ -10,7 +11,10 @@ const supabaseAdmin = createClient(
 );
 
 function getPassword(lineUserId: string) {
-  return `line_${lineUserId}_${process.env.LIFF_PASSWORD_SECRET!}`;
+  // HMAC-SHA256で固定長(64文字hex)のパスワードを生成（bcrypt上限72文字以内）
+  return createHmac("sha256", process.env.LIFF_PASSWORD_SECRET!)
+    .update(lineUserId.toLowerCase())
+    .digest("hex");
 }
 
 export async function POST(request: Request) {
@@ -41,7 +45,7 @@ export async function POST(request: Request) {
     const lineUserId = profile.userId as string;
     const displayName = profile.displayName as string;
 
-    const email = `line_${lineUserId}@line.local`;
+    const email = `line_${lineUserId.toLowerCase()}@line.local`;
     const password = getPassword(lineUserId);
 
     // 既存ユーザーの移行処理：サインイン失敗したらadmin APIでパスワードを強制更新
@@ -111,7 +115,7 @@ export async function POST(request: Request) {
       .limit(1);
 
     if (link) {
-      const linkedEmail = `line_${lineUserId}@line.local`;
+      const linkedEmail = `line_${lineUserId.toLowerCase()}@line.local`;
       const linkedPassword = getPassword(lineUserId);
 
       const sessionData = await signInOrMigrate(linkedEmail, linkedPassword);
