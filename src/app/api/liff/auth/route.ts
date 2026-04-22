@@ -53,17 +53,26 @@ export async function POST(request: Request) {
 
       if (signInData?.session) return signInData;
 
-      // サインイン失敗 → 既存ユーザーを削除して再作成（パスワードリセット）
-      // GoTrue admin APIの全ページを走査してemailでユーザーを探す
+      // サインイン失敗 → listUsersで全ページ走査してemailでユーザーを探す
       let page = 1;
       let foundUserId: string | null = null;
+      let totalScanned = 0;
       while (!foundUserId) {
-        const { data: listData } = await supabaseAdmin.auth.admin.listUsers({
+        const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers({
           page,
           perPage: 100,
         });
-        if (!listData?.users?.length) break;
-        const match = listData.users.find(u => u.email === targetEmail);
+        if (listError) {
+          console.error("listUsers error:", listError);
+          break;
+        }
+        if (!listData?.users?.length) {
+          console.log("listUsers: no users on page", page);
+          break;
+        }
+        totalScanned += listData.users.length;
+        console.log(`listUsers page ${page}: ${listData.users.length} users, emails:`, listData.users.map(u => u.email));
+        const match = listData.users.find(u => u.email?.toLowerCase() === targetEmail.toLowerCase());
         if (match) {
           foundUserId = match.id;
           break;
@@ -71,16 +80,23 @@ export async function POST(request: Request) {
         if (listData.users.length < 100) break;
         page++;
       }
+      console.log(`signInOrMigrate: scanned ${totalScanned} users, foundUserId=${foundUserId}, targetEmail=${targetEmail}`);
 
       if (foundUserId) {
-        // パスワードを強制更新
-        await supabaseAdmin.auth.admin.updateUserById(foundUserId, {
+        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(foundUserId, {
           password: targetPassword,
         });
-        const { data: retryData } = await supabaseAdmin.auth.signInWithPassword({
+        if (updateError) {
+          console.error("updateUserById error:", updateError);
+          return null;
+        }
+        const { data: retryData, error: retryError } = await supabaseAdmin.auth.signInWithPassword({
           email: targetEmail,
           password: targetPassword,
         });
+        if (retryError) {
+          console.error("retry signIn error:", retryError);
+        }
         return retryData;
       }
 
