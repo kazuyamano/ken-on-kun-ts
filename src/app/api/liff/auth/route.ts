@@ -53,19 +53,19 @@ export async function POST(request: Request) {
 
       if (signInData?.session) return signInData;
 
-      // 失敗した場合、admin APIでパスワードを強制更新（移行）
-      const { data: users } = await supabaseAdmin.auth.admin.listUsers();
-      const existingUser = users?.users.find(u => u.email === targetEmail);
+      // 新パスワードで失敗 → 旧パスワードでサインインを試みる（移行対象ユーザー）
+      const oldPassword = `line_${lineUserId}_${process.env.SUPABASE_SERVICE_ROLE_KEY!.slice(-8)}`;
+      const { data: oldSignIn } = await supabaseAdmin.auth.signInWithPassword({
+        email: targetEmail,
+        password: oldPassword,
+      });
 
-      if (existingUser) {
-        await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
+      if (oldSignIn?.session && oldSignIn.user) {
+        // 旧パスワードで成功 → 新パスワードに更新
+        await supabaseAdmin.auth.admin.updateUserById(oldSignIn.user.id, {
           password: targetPassword,
         });
-        const { data: retryData } = await supabaseAdmin.auth.signInWithPassword({
-          email: targetEmail,
-          password: targetPassword,
-        });
-        return retryData;
+        return oldSignIn;
       }
 
       return null;
