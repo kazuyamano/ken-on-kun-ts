@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { userLinks } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     const email = `line_${lineUserId}@line.local`;
     const password = getPassword(lineUserId);
 
-    // 既存ユーザーの移行処理：新パスワードでサインイン失敗したらパスワードを更新
+    // 既存ユーザーの移行処理：サインイン失敗したらadmin APIでパスワードを強制更新
     async function signInOrMigrate(targetEmail: string, targetPassword: string) {
       const { data: signInData } = await supabaseAdmin.auth.signInWithPassword({
         email: targetEmail,
@@ -53,19 +53,21 @@ export async function POST(request: Request) {
 
       if (signInData?.session) return signInData;
 
-      // 新パスワードで失敗 → 旧パスワードでサインインを試みる（移行対象ユーザー）
-      const oldPassword = `line_${lineUserId}_${process.env.SUPABASE_SERVICE_ROLE_KEY!.slice(-8)}`;
-      const { data: oldSignIn } = await supabaseAdmin.auth.signInWithPassword({
-        email: targetEmail,
-        password: oldPassword,
-      });
+      // サインイン失敗 → auth.usersテーブルからemailでユーザーIDを取得しパスワード強制更新
+      const rows = await db.execute(
+        sql`SELECT id FROM auth.users WHERE email = ${targetEmail} LIMIT 1`
+      );
 
-      if (oldSignIn?.session && oldSignIn.user) {
-        // 旧パスワードで成功 → 新パスワードに更新
-        await supabaseAdmin.auth.admin.updateUserById(oldSignIn.user.id, {
+      if (rows.length > 0) {
+        const userId = (rows[0] as { id: string }).id;
+        await supabaseAdmin.auth.admin.updateUserById(userId, {
           password: targetPassword,
         });
-        return oldSignIn;
+        const { data: retryData } = await supabaseAdmin.auth.signInWithPassword({
+          email: targetEmail,
+          password: targetPassword,
+        });
+        return retryData;
       }
 
       return null;
